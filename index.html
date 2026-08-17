@@ -3,10 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hans Dampf - Cloud Intelligenz</title>
+  <title>Hans Dampf - Cloud-Modus</title>
   
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #1e1e2f; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
     .chat-box { width: 400px; background: #2a2a40; padding: 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px; }
@@ -21,43 +19,42 @@
 
   <div class="chat-box">
     <h2>🧔‍♂️ Hans Dampf (Cloud-Modus)</h2>
-    <div id="status" style="font-size: 0.8rem; color: #2ed573;">Verbinde mit der Cloud...</div>
+    <div id="status" style="font-size: 0.8rem; color: #2ed573;">Verbinde direkt mit Supabase...</div>
     <div id="log"></div>
     <div class="input-row">
       <input type="text" id="userInput" placeholder="Frag Hans etwas..." onkeypress="handleKey(event)">
       <button onclick="askHans()">Senden</button>
     </div>
-    <button onclick="teachHans()" style="background: #ffa502; font-size: 0.8rem;">+ Etwas beibringen (für alle)</button>
   </div>
 
   <script>
     const SUPABASE_URL = 'https://hxiiklwoinvucfstmtqoz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh4aWlrbHdvaW52dWNmc3RtcW96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5NjE2MDQsImV4cCI6MjEwMjUzNzYwNH0.hXdedopxdbfk5C0XC9Wn3EuO27KX2eOVe9-wFPIoS60';
     
-    let db;
-    try {
-      db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } catch (e) {
-      console.error("Init Fehler:", e);
-    }
-
     let externalBrain = [];
 
-    async function loadBrainFromCloud() {
+    async function loadBrainDirect() {
       try {
-        const { data, error } = await db.from('hans_brain').select('*');
-        if (error) {
-          // Zeigt den vollständigen Fehler direkt im Statusfeld an
-          document.getElementById("status").innerText = "Fehler: " + JSON.stringify(error);
-          logMessage("System", "Fehlerdetails: " + JSON.stringify(error));
-        } else {
-          externalBrain = data || [];
-          document.getElementById("status").innerText = `Gehirn geladen (${externalBrain.length} Einträge)`;
-          logMessage("Hans", "Moin! Ich bin online und mit der Cloud verbunden.");
+        // Wir fragen die REST-Schnittstelle direkt per Standard-Fetch an (ohne externe Bibliothek)
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/hans_brain?select=*`, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error("HTTP-Fehler: " + response.status);
         }
+
+        const data = await response.json();
+        externalBrain = data || [];
+        document.getElementById("status").innerText = `Gehirn geladen (${externalBrain.length} Einträge)`;
+        logMessage("Hans", "Moin! Direkt verbunden. Frag mich was!");
+
       } catch (err) {
-        document.getElementById("status").innerText = "Netzwerkfehler: " + err.message;
-        logMessage("System", "Catch-Fehler: " + err.message);
+        document.getElementById("status").innerText = "Verbindung fehlgeschlagen";
+        logMessage("System", "Fehler: " + err.message);
       }
     }
 
@@ -69,7 +66,7 @@
       logMessage("Du", text);
       input.value = "";
 
-      let foundAnswer = "Puh, das weiß ich noch nicht. Bring es mir über den Button unten bei!";
+      let foundAnswer = "Puh, das weiß ich noch nicht aus der Cloud.";
       
       for (let entry of externalBrain) {
         let kw = String(entry.keywords || "").toLowerCase();
@@ -84,25 +81,6 @@
       setTimeout(() => logMessage("Hans", foundAnswer), 400);
     }
 
-    async function teachHans() {
-      const newKeyword = prompt("Welches Wort / Frage soll Hans lernen?");
-      const newAnswer = prompt("Was soll Hans darauf antworten?");
-
-      if (!newKeyword || !newAnswer) return;
-
-      const { error } = await db.from('hans_brain').insert([{
-        keywords: newKeyword.trim().toLowerCase(),
-        answers: newAnswer.trim()
-      }]);
-
-      if (error) {
-        alert("Fehler beim Speichern: " + JSON.stringify(error));
-      } else {
-        alert("Erfolgreich gespeichert!");
-        loadBrainFromCloud();
-      }
-    }
-
     function logMessage(sender, text) {
       const log = document.getElementById("log");
       log.innerHTML += `<div><b>${sender}:</b> ${text}</div>`;
@@ -111,9 +89,9 @@
 
     function handleKey(e) { if (e.key === 'Enter') askHans(); }
 
-    loadBrainFromCloud();
+    loadBrainDirect();
   </script>
-  
+
 
 </body>
 </html>

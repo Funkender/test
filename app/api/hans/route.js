@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+// Zwingt Vercel, diese Datei erst live aufzurufen und nicht beim Bauen!
+export const dynamic = 'force-dynamic';
+
+export async function GET(req) {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
@@ -20,13 +23,12 @@ export async function GET() {
   }
 }
 
-// NEU: Diese Funktion erlaubt es Nutzern, neues Wissen zu speichern
 export async function POST(req) {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
   try {
-    const body = await req.json(); // Was der Nutzer Hans beibringt
+    const body = await req.json(); 
     
     const res = await fetch(`${SUPABASE_URL}/rest/v1/hans_brain`, {
       method: 'POST',
@@ -46,6 +48,5 @@ export async function POST(req) {
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
-  
   }
 }

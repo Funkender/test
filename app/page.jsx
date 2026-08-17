@@ -4,39 +4,62 @@ import { useState, useEffect } from 'react';
 export default function Home() {
   const [brain, setBrain] = useState([]);
   const [input, setInput] = useState('');
-  const [log, setLog] = useState([{ sender: 'Hans', text: 'Moin! Mein echtes Cloud-Backend ist online. Was gibt\'s?' }]);
+  const [log, setLog] = useState([{ sender: 'Hans', text: 'Moin! Ich bin online. Was ich nicht weiß, kannst du mir beibringen!' }]);
   const [status, setStatus] = useState('Lade Gehirn...');
+  
+  // Speichert das Wort, das Hans gerade lernt
+  const [learningKeyword, setLearningKeyword] = useState(null);
 
-  useEffect(() => {
-    // Hier fragt dein Handy nicht mehr Supabase direkt, sondern dein EIGENES Backend!
+  // Lädt das Gehirn beim Start
+  const loadBrain = () => {
     fetch('/api/hans')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
           setBrain(data);
           setStatus(`Verbunden (${data.length} Erinnerungen geladen)`);
-        } else {
-          setStatus('Fehler: Konnte Daten nicht lesen');
         }
-      })
-      .catch(() => setStatus('Verbindungsfehler zum Backend'));
+      });
+  };
+
+  useEffect(() => {
+    loadBrain();
   }, []);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!input.trim()) return;
-    const userText = input.toLowerCase();
-    const newLog = [...log, { sender: 'Du', text: input }];
+    const userText = input.trim();
+    const newLog = [...log, { sender: 'Du', text: userText }];
     setInput('');
 
-    let answer = "Puh, das weiß ich noch nicht aus der Cloud.";
-    
-    // Einfache Suche in den Cloud-Daten
-    const found = brain.find(b => userText.includes((b.keywords || '').toLowerCase()));
-    if (found) {
-      answer = found.answers;
+    // Befinden wir uns im "Lern-Modus"?
+    if (learningKeyword) {
+      setLog([...newLog, { sender: 'Hans', text: 'Danke! Ich speichere das in der Cloud...' }]);
+      
+      // Neues Wissen in die Cloud hochladen
+      await fetch('/api/hans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywords: learningKeyword, answers: userText })
+      });
+
+      setLog([...newLog, { sender: 'Hans', text: `Verstanden! Wenn mich ab jetzt jemand nach "${learningKeyword}" fragt, weiß ich Bescheid.` }]);
+      setLearningKeyword(null); // Lernmodus beenden
+      loadBrain(); // Neues Gehirn laden
+      return;
     }
 
-    setLog([...newLog, { sender: 'Hans', text: answer }]);
+    // Normaler Chat-Modus
+    const lowerText = userText.toLowerCase();
+    const found = brain.find(b => lowerText.includes((b.keywords || '').toLowerCase()));
+    
+    if (found) {
+      setLog([...newLog, { sender: 'Hans', text: found.answers }]);
+    } else {
+      // Hans weiß es nicht -> Lernmodus aktivieren!
+      setLearningKeyword(lowerText);
+      setLog([...newLog, { sender: 'Hans', text: "Puh, das weiß ich noch nicht. Was soll ich das nächste Mal darauf antworten?" }]);
+    }
   };
 
   return (
@@ -62,13 +85,15 @@ export default function Home() {
             value={input} 
             onChange={e => setInput(e.target.value)} 
             onKeyDown={e => e.key === 'Enter' && sendMessage()}
-            placeholder="Schreibe eine Nachricht..." 
+            placeholder={learningKeyword ? "Tippe die Antwort ein..." : "Schreibe eine Nachricht..."} 
             style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#2a2a2a', color: '#fff', fontSize: '1rem' }}
           />
-          <button onClick={sendMessage} style={{ padding: '0 20px', background: '#ff6b6b', border: 'none', borderRadius: '8px', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>Senden</button>
+          <button onClick={sendMessage} style={{ padding: '0 20px', background: learningKeyword ? '#2ed573' : '#ff6b6b', border: 'none', borderRadius: '8px', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>
+            {learningKeyword ? 'Speichern' : 'Senden'}
+          </button>
         </div>
       </div>
-    </main>
-
+    </mai
+      n>
   );
 }

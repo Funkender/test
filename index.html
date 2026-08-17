@@ -32,7 +32,6 @@
 
   <script>
     const SUPABASE_URL = 'https://hxiiklwoinvucfstmtqoz.supabase.co';
-    // Dein echter klassischer anon-Key ist hier hinterlegt:
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh4aWlrbHdvaW52dWNmc3RtcW96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5NjE2MDQsImV4cCI6MjEwMjUzNzYwNH0.hXdedopxdbfk5C0XC9Wn3EuO27KX2eOVe9-wFPIoS60';
     
     let db;
@@ -48,16 +47,17 @@
       try {
         const { data, error } = await db.from('hans_brain').select('*');
         if (error) {
-          document.getElementById("status").innerText = "Datenbank-Fehler: " + error.message;
-          console.error(error);
+          // Zeigt den vollständigen Fehler direkt im Statusfeld an
+          document.getElementById("status").innerText = "Fehler: " + JSON.stringify(error);
+          logMessage("System", "Fehlerdetails: " + JSON.stringify(error));
         } else {
           externalBrain = data || [];
           document.getElementById("status").innerText = `Gehirn geladen (${externalBrain.length} Einträge)`;
           logMessage("Hans", "Moin! Ich bin online und mit der Cloud verbunden.");
         }
       } catch (err) {
-        document.getElementById("status").innerText = "Verbindungsfehler!";
-        console.error(err);
+        document.getElementById("status").innerText = "Netzwerkfehler: " + err.message;
+        logMessage("System", "Catch-Fehler: " + err.message);
       }
     }
 
@@ -96,9 +96,9 @@
       }]);
 
       if (error) {
-        alert("Fehler beim Speichern: " + error.message);
+        alert("Fehler beim Speichern: " + JSON.stringify(error));
       } else {
-        alert("Erfolgreich gespeichert! Jeder hat dieses Wissen jetzt sofort.");
+        alert("Erfolgreich gespeichert!");
         loadBrainFromCloud();
       }
     }
@@ -113,6 +113,7 @@
 
     loadBrainFromCloud();
   </script>
+  
 
 </body>
 </html>

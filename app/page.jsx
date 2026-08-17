@@ -6,12 +6,10 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [log, setLog] = useState([{ sender: 'Hans', text: 'Moin! Ich bin online. Was ich nicht weiß, kannst du mir beibringen!' }]);
   const [status, setStatus] = useState('Lade Gehirn...');
-  
-  // Speichert das Wort, das Hans gerade lernt
   const [learningKeyword, setLearningKeyword] = useState(null);
 
-  // Lädt das Gehirn beim Start
-  const loadBrain = () => {
+  // Das Initiale Laden ohne externe Funktion (verhindert den Vercel-Error)
+  useEffect(() => {
     fetch('/api/hans')
       .then(res => res.json())
       .then(data => {
@@ -20,10 +18,6 @@ export default function Home() {
           setStatus(`Verbunden (${data.length} Erinnerungen geladen)`);
         }
       });
-  };
-
-  useEffect(() => {
-    loadBrain();
   }, []);
 
   const sendMessage = async () => {
@@ -44,8 +38,17 @@ export default function Home() {
       });
 
       setLog([...newLog, { sender: 'Hans', text: `Verstanden! Wenn mich ab jetzt jemand nach "${learningKeyword}" fragt, weiß ich Bescheid.` }]);
-      setLearningKeyword(null); // Lernmodus beenden
-      loadBrain(); // Neues Gehirn laden
+      setLearningKeyword(null); 
+      
+      // Gehirn danach sofort aktualisieren
+      fetch('/api/hans')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setBrain(data);
+            setStatus(`Verbunden (${data.length} Erinnerungen geladen)`);
+          }
+        });
       return;
     }
 
@@ -93,7 +96,7 @@ export default function Home() {
           </button>
         </div>
       </div>
-    </mai
-      n>
+    </main>
+    
   );
 }
